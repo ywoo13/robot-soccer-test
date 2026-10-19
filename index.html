@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>햄스터 조종 화면 (서버 연결 · 가짜 로봇)</title>
+<style>
+:root{--bg:#0f172a;--panel:#1e293b;--line:#334155;--blue:#38bdf8;--red:#f87171;--orange:#f97316;--green:#4ade80;--amber:#fbbf24;--dim:#94a3b8;--text:#e2e8f0;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0f172a}}
+:root[data-theme="dark"]{--bg:#0f172a}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif;overflow:hidden}
+button{font:inherit;cursor:pointer}
+button:disabled{opacity:.35;cursor:not-allowed}
+
+#bg{position:fixed;inset:0;padding-top:14vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;pointer-events:none;user-select:none;z-index:1;opacity:.8}
+#bg .em{width:22vh;height:22vh;border-radius:50%;border:1vh solid var(--blue);display:flex;align-items:center;justify-content:center;text-align:center;color:var(--blue);font-weight:900;font-size:4vh;line-height:1.2}
+#bg .sc{color:var(--text);font-weight:800;font-size:5vh;letter-spacing:.3vh}
+#bg .en{color:#fff;font-weight:900;font-size:15vh;letter-spacing:1.5vh;line-height:1;text-shadow:0 0 2vh rgba(56,189,248,.8)}
+
+#board{position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:2vh;padding:6px 3vh;border-radius:14px;background:rgba(15,23,42,.85);border:2px solid var(--line);font-weight:900;z-index:100000;pointer-events:none;user-select:none;transition:border-color .3s}
+#board .t{font-size:5vh;text-underline-offset:.6vh}
+#board .n,#board .c{font-size:8vh;line-height:1}
+#board .s{display:flex;align-items:center;gap:1.5vh}
+
+#help{position:fixed;left:24px;top:50%;transform:translateY(-50%);width:40vh;max-width:26vw;padding:1.7vh 1.9vh;border-radius:18px;background:rgba(15,23,42,.82);border:1px solid rgba(148,163,184,.25);box-shadow:0 18px 45px rgba(0,0,0,.28);backdrop-filter:blur(12px);font-size:1.9vh;line-height:1.45;z-index:99995;pointer-events:none;user-select:none}
+#help .h{display:flex;align-items:center;gap:.6vh;font-weight:900;color:var(--blue);margin:1.25vh 0 .45vh;font-size:2.15vh}
+#help .h small{font-weight:500;color:#64748b;font-size:1.6vh}
+#help .d{color:var(--dim);font-size:1.7vh}
+#help .r{margin-top:.3vh}
+#help .k{display:inline-flex;align-items:center;justify-content:center;min-width:2.5vh;height:2.5vh;padding:0 .65vh;border-radius:6px;background:var(--line);border:1px solid #475569;color:#fff;font-weight:800;font-size:1.65vh;margin-right:.25vh;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
+#hst{font-weight:900;font-size:2.35vh;padding:.15vh 0 1vh;border-bottom:1px solid rgba(148,163,184,.22)}
+#hme{margin-top:.9vh;font-weight:800;font-size:2vh}
+#help .w{margin-top:1.25vh;padding:.9vh 1vh;border-radius:9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.18);color:var(--amber);font-size:1.65vh}
+
+#joy{position:fixed;right:30px;bottom:30px;width:160px;height:160px;border-radius:50%;background:var(--panel);border:2px solid var(--line);z-index:99999;touch-action:none;user-select:none}
+#stick{position:absolute;width:60px;height:60px;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;background:var(--blue);cursor:grab;touch-action:none}
+#boost{position:fixed;right:210px;bottom:60px;width:80px;height:80px;border-radius:50%;border:2px solid var(--line);color:#fff;font-weight:700;font-size:14px;z-index:99999;touch-action:manipulation;user-select:none}
+#badge{position:fixed;left:16px;bottom:12px;font-size:11px;color:rgba(148,163,184,.6);pointer-events:none;user-select:none;z-index:99999}
+
+#ov{position:fixed;inset:0;z-index:100010;display:none;flex-direction:column;align-items:center;justify-content:center;gap:2vh;background:rgba(2,6,23,.85);font-weight:900;text-align:center;cursor:pointer}
+#ov .i{font-size:22vh;line-height:1}#ov .tt{font-size:20vh;line-height:1}#ov .sc{font-size:6vh}#ov .hi{font-size:2.2vh;color:#64748b;font-weight:500}
+
+/* 데모 컨트롤 */
+#demo{position:fixed;top:12px;right:12px;width:236px;padding:12px;border-radius:14px;background:rgba(15,23,42,.92);border:1px solid var(--line);z-index:100020;font-size:13px}
+#demo b{display:block;margin:10px 0 5px;color:var(--dim);font-weight:700}
+#demo b:first-child{margin-top:0}
+#demo .g{display:flex;flex-wrap:wrap;gap:5px}
+#demo button{padding:6px 9px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+#demo button.on{background:var(--blue);color:#06202e;border-color:var(--blue);font-weight:800}
+#wh{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;font-variant-numeric:tabular-nums}
+#wh i{display:block;height:8px;border-radius:4px;background:var(--line);position:relative;overflow:hidden}
+#wh i span{position:absolute;top:0;bottom:0;background:var(--green);left:50%;width:0}
+#demo p{margin:8px 0 0;color:#64748b;font-size:12px;line-height:1.4}
+@media (max-width:760px){#demo{top:auto;bottom:210px;right:8px;width:200px}#help{display:none}}
+</style>
+</head>
+<body>
+<div id="bg"><div class="em">백신<br>중학교</div><div class="sc">백신중학교</div><div class="en">ENTER</div></div>
+
+<div id="board"><div class="s"><span class="t" id="tA" style="color:var(--blue)">A</span><span class="n" id="nA">0</span></div><span class="c">:</span><div class="s"><span class="n" id="nB">0</span><span class="t" id="tB" style="color:var(--red)">B</span></div></div>
+
+<div id="help">
+<div id="hst"></div><div id="hme"></div>
+<div class="h">🎮 조이스틱 <small>오른쪽 아래</small></div>
+<div class="r">파란 원을 끌어서 조종</div>
+<div class="d">↑ 전진 · ↓ 후진 · ← → 회전 · 놓으면 정지</div>
+<div class="d">밀수록 속도 증가</div>
+<div class="h">⌨️ 키보드</div>
+<div class="r"><span class="k">↑</span> 전진 &nbsp; <span class="k">↓</span> 후진</div>
+<div class="r"><span class="k">←</span> 좌회전 &nbsp; <span class="k">→</span> 우회전</div>
+<div class="d">이동 중 회전 → 완만한 곡선 · 정지 상태 → 제자리 회전</div>
+<div class="h">🔥 부스트</div>
+<div class="r"><span class="k">Space</span> 또는 <b style="color:var(--orange)">BOOST</b></div>
+<div class="d">3초간 최고 속도 60 → <b style="color:var(--text)">100</b></div>
+<div class="d"><span style="color:#ef4444">●</span> 사용 중 &nbsp; <span style="color:var(--dim)">●</span> 쿨타임 5초 &nbsp; <span style="color:var(--orange)">●</span> 사용 가능</div>
+<div class="w">※ 경기 중 + 팀 배정 후에만 조종 가능 · 대기/일시정지/종료 시 정지</div>
+</div>
+
+<div id="joy"><div id="stick"></div></div>
+<button id="boost">BOOST</button>
+<div id="badge">made with claude</div>
+<div id="ov"><div class="i" id="oi"></div><div class="tt" id="ot"></div><div class="sc" id="os"></div><div class="hi">클릭하면 닫힙니다</div></div>
+
+<div id="demo">
+<b>가짜 로봇 (바퀴 출력)</b>
+<div id="wh"><span>L <em id="wl">0</em></span><i><span id="bl"></span></i><span>R <em id="wr">0</em></span><i><span id="br"></span></i></div>
+<p id="conn">서버 연결 중...</p>
+</div>
+
+<script>
+var GAIN=1.6,ARC=.5,NS=60,BS=100,BMS=3000,CD=5000,MAXR=50;
+var $=function(i){return document.getElementById(i)};
+var phase='offline',team=null,myId=0,outc=null,A=0,B=0,run=false;
+var keys={},dragging=false,joy={x:0,y:0},boostUntil=0,readyAt=0,boostTimer=null,flashT=null,shownKey='';
+
+function eff(){return phase==='offline'?'offline':(team?phase:'unassigned')}
+function lim(){return Date.now()<boostUntil?BS:NS}
+
+function show(el,v,max){var p=v/max*50;el.style.left=(p<0?50+p:50)+'%';el.style.width=Math.abs(p)+'%'}
+function drive(l,r){
+  if(!run){l=0;r=0}
+  var m=lim();l=Math.max(-m,Math.min(m,Math.round(l)));r=Math.max(-m,Math.min(m,Math.round(r)));
+  $('wl').textContent=l;$('wr').textContent=r;show($('bl'),l,100);show($('br'),r,100);
+}
+function mix(f,t){var l=f+t,r=f-t,m=Math.max(Math.abs(l),Math.abs(r),1),L=lim();drive(l/m*L,r/m*L)}
+function applyDrive(){
+  if(dragging)mix(joy.y*GAIN,joy.x*GAIN);
+  else{var f=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0),t=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0);mix(f,t*(f!==0?ARC:1))}
+}
+function startBoost(){
+  if(!run)return;var n=Date.now();if(n<boostUntil||n<readyAt)return;
+  boostUntil=n+BMS;readyAt=boostUntil+CD;applyDrive();boostTimer=setTimeout(applyDrive,BMS);
+}
+
+/* 키보드 */
+document.addEventListener('keydown',function(e){
+  if(e.key===' '){e.preventDefault();if(!e.repeat)startBoost();return}
+  if(e.key.indexOf('Arrow')!==0)return;e.preventDefault();if(e.repeat)return;keys[e.key]=true;applyDrive();
+});
+document.addEventListener('keyup',function(e){if(e.key.indexOf('Arrow')!==0)return;keys[e.key]=false;applyDrive()});
+window.addEventListener('blur',function(){keys={};if(dragging)endDrag();else drive(0,0)});
+
+/* 조이스틱 */
+var base=$('joy'),stick=$('stick');
+function setStick(x,y){stick.style.left='calc(50% + '+x*MAXR+'px)';stick.style.top='calc(50% + '+y*MAXR+'px)'}
+function move(e){
+  var r=base.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/MAXR,dy=(e.clientY-r.top-r.height/2)/MAXR,d=Math.hypot(dx,dy);
+  if(d>1){dx/=d;dy/=d}setStick(dx,dy);joy.x=dx;joy.y=dy;applyDrive();
+}
+function endDrag(){if(!dragging)return;dragging=false;joy.x=joy.y=0;setStick(0,0);stick.style.cursor='grab';drive(0,0);applyDrive()}
+stick.addEventListener('pointerdown',function(e){e.preventDefault();stick.setPointerCapture(e.pointerId);dragging=true;stick.style.cursor='grabbing'});
+stick.addEventListener('pointermove',function(e){if(dragging)move(e)});
+stick.addEventListener('pointerup',endDrag);stick.addEventListener('pointercancel',endDrag);
+
+/* 부스트 버튼 */
+$('boost').addEventListener('click',function(){startBoost();this.blur()});
+setInterval(function(){
+  var b=$('boost'),n=Date.now();
+  if(n<boostUntil){b.textContent=((boostUntil-n)/1000).toFixed(1)+'s';b.style.background='#ef4444';b.style.opacity=1}
+  else if(n<readyAt){b.textContent=((readyAt-n)/1000).toFixed(1)+'s';b.style.background='#475569';b.style.opacity=.6}
+  else{b.textContent='BOOST';b.style.background='var(--orange)';b.style.opacity=run?1:.4}
+},100);
+
+/* 상태 반영 */
+var PT={offline:['🔌 서버 연결 중...','#94a3b8'],unassigned:['⏳ 팀 배정 대기 중','#94a3b8'],idle:['⏹ 경기 대기 중','#94a3b8'],running:['🟢 경기 진행 중','#4ade80'],paused:['⏸ 일시정지','#fbbf24'],finished:['🏁 경기 종료','#f97316']};
+var RS={win:['🏆','승리!','#4ade80'],lose:['😢','패배...','#f87171'],draw:['🤝','무승부','#fbbf24']};
+
+function render(){
+  var e=eff(),was=run;run=(e==='running');
+  if(!run){keys={};if(dragging)endDrag();if(e!=='paused'){boostUntil=readyAt=0;clearTimeout(boostTimer)}drive(0,0)}else if(!was)applyDrive();
+
+  $('hst').textContent=PT[e][0];$('hst').style.color=PT[e][1];
+  $('hme').textContent=!myId?'🎫 번호 배정 중...':team?'🎫 내 번호 #'+myId+' · '+team+'팀':'🎫 내 번호 #'+myId+' · 팀 배정 대기';
+  $('hme').style.color=team==='A'?'var(--blue)':team==='B'?'var(--red)':'var(--dim)';
+  $('tA').style.textDecoration=team==='A'?'underline':'none';$('tB').style.textDecoration=team==='B'?'underline':'none';
+  $('nA').textContent=A;$('nB').textContent=B;
+
+  var ov=$('ov');
+  if(!outc){ov.style.display='none';shownKey=''}
+  else{var k=outc+A+':'+B;if(k!==shownKey){shownKey=k;var s=RS[outc];$('oi').textContent=s[0];$('ot').textContent=s[1];$('ot').style.color=s[2];$('os').textContent='A '+A+' : '+B+' B  ·  내 팀 '+team;ov.style.display='flex'}}
+}
+function flash(){var b=$('board');b.style.borderColor='var(--orange)';clearTimeout(flashT);flashT=setTimeout(function(){b.style.borderColor='var(--line)'},1000)}
+$('ov').onclick=function(){this.style.display='none'};
+
+/* ---------- 실제 서버 연결 (로봇만 가짜) ---------- */
+var SERVER='https://scoreboard-4vet.onrender.com',TK='hamsterToken';
+var token='';try{token=sessionStorage.getItem(TK)||''}catch(x){}
+var es=null,joining=false,retryT=null,lastTotal=null;
+function conn(t){$('conn').textContent=t}
+function retry(f,ms){clearTimeout(retryT);retryT=setTimeout(f,ms)}
+
+function join(){
+  if(joining)return;joining=true;
+  fetch(SERVER+'/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token})})
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
+    .then(function(d){
+      joining=false;token=d.token;try{sessionStorage.setItem(TK,token)}catch(x){}
+      myId=d.you.id;team=d.you.team;render();connect();
+    })
+    .catch(function(){joining=false;phase='offline';conn('🔴 서버에 연결할 수 없음 · 3초 후 재시도');render();retry(join,3000)});
+}
+function connect(){
+  if(es)es.close();
+  es=new EventSource(SERVER+'/events?token='+encodeURIComponent(token));
+  es.onmessage=function(e){
+    var s;try{s=JSON.parse(e.data)}catch(x){return}
+    if(!s.you){if(!joining)join();return}          // 서버가 토큰을 모름 → 다시 가입
+    myId=s.you.id;team=s.you.team;outc=s.you.outcome;
+    A=s.home;B=s.away;
+    var total=A+B;if(lastTotal!==null&&total>lastTotal)flash();lastTotal=total;
+    phase=s.phase;conn('🟢 서버 연결됨');render();
+  };
+  es.onerror=function(){phase='offline';conn('🟠 연결 끊김 · 재연결 중...');render();if(es.readyState===2)retry(connect,3000)};
+}
+
+render();
+join();
+</script>
+</body>
+</html>
